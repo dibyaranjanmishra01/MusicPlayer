@@ -10,9 +10,11 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.viewpager.widget.PagerAdapter;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.example.musicplayer.R;
 import com.example.musicplayer.fragment.SongPagerFragment;
@@ -21,18 +23,20 @@ import com.example.musicplayer.utils.LoadBitmap;
 
 import java.util.ArrayList;
 
-public class SongPagerAdapter extends FragmentStatePagerAdapter {
+public class SongPagerAdapter extends FragmentStateAdapter {
 
     Context context;
     ArrayList<Song> songList;
 
-    public SongPagerAdapter(@NonNull FragmentManager fm,Context context) {
-        super(fm);
+    public SongPagerAdapter(@NonNull FragmentActivity fragmentActivity, Context context) {
+        super(fragmentActivity);
         this.context = context;
+        this.songList = new ArrayList<Song>();
     }
 
     public void setSongList(ArrayList<Song> songList) {
         this.songList = songList;
+        notifyDataSetChanged();
     }
 
     public boolean isSongListEqual(ArrayList<Song> list)
@@ -43,12 +47,12 @@ public class SongPagerAdapter extends FragmentStatePagerAdapter {
 
     @NonNull
     @Override
-    public Fragment getItem(int position) {
+    public Fragment createFragment(int position) {
         return new SongPagerFragment(songList.get(position),context);
     }
 
     @Override
-    public int getCount() {
+    public int getItemCount() {
         return songList.size();
     }
 

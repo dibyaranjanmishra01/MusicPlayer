@@ -24,6 +24,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.musicplayer.MainActivity;
 import com.example.musicplayer.R;
@@ -48,7 +49,7 @@ public class SongListFragment extends Fragment implements RecyclerTouchListener.
     View v;
     ArrayList<Song> songList;
     ConstraintLayout bottomSheetLayout;
-    ViewPager viewPager;
+    ViewPager2 viewPager;
     SongListAdapter adapter;
     SongPagerAdapter pagerAdapter;
     RecyclerView recyclerView;
@@ -68,7 +69,7 @@ public class SongListFragment extends Fragment implements RecyclerTouchListener.
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         //isBottomSheetCollapsed = true;
-        songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
+        songViewModel = new ViewModelProvider(requireActivity()).get(SongViewModel.class);
         songViewModel.setBottomSheetCollapsed(true);
         viewPager = getActivity().findViewById(R.id.song_pager);
         title = getActivity().findViewById(R.id.sheet_title);
@@ -81,62 +82,26 @@ public class SongListFragment extends Fragment implements RecyclerTouchListener.
         fadeIn = AnimationUtils.loadAnimation(getContext(),R.anim.fade_in);
         v = getActivity().findViewById(R.id.view);
         bottomSheetLayout = getActivity().findViewById(R.id.bottom_sheet);
-
-
         recyclerView = view.findViewById(R.id.recycler);
+
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new SongListAdapter(getContext());
 
         recyclerTouchListener = new RecyclerTouchListener(getContext(),recyclerView,this);
+        recyclerView.setAdapter(adapter);
+        recyclerView.addOnItemTouchListener(recyclerTouchListener);
         populateSong();
 
     }
 
     public void populateSong() {
-        pagerAdapter = new SongPagerAdapter(getParentFragmentManager(),getContext());
-        songViewModel.getSongList().observe(getActivity(), new Observer<ArrayList<Song>>() {
+        songViewModel.getSongList().observe(requireActivity(), new Observer<ArrayList<Song>>() {
             @Override
             public void onChanged(ArrayList<Song> songs) {
                 songList =songs;
                 adapter.setSongList(songs);
-                recyclerView.setAdapter(adapter);
-                pagerAdapter.setSongList(songs);
-                viewPager.setAdapter(pagerAdapter);
+                songViewModel.setCurrentSongList(songs);
                 recyclerTouchListener.setSongList(songs);
-                recyclerView.addOnItemTouchListener(recyclerTouchListener);
-//                MainFragment mainFragment = new MainFragment(songs);
-//                getParentFragmentManager().beginTransaction()
-//                        .add(R.id.fragment_container_view, mainFragment)
-//                        .setReorderingAllowed(true)
-//                        .commit();
-                viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-                    @Override
-                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                        test.setText(" "+positionOffset);
-                        if(!songViewModel.isBottomSheetCollapsed())
-                        {
-                            v.setVisibility(View.VISIBLE);
-                            v.setScaleX(20*positionOffset*positionOffset);
-                            v.setScaleY(20*positionOffset*positionOffset);
-                        }
-                    }
-
-                    @Override
-                    public void onPageSelected(int position) {
-                        title.setText(songs.get(position).getTitle());
-                        artist.setText(songs.get(position).getArtist());
-                        pagerTitle.setText(songs.get(position).getTitle());
-                        pagerArtist.setText(songs.get(position).getArtist());
-                        duration.setText(songs.get(position).getDuration());
-                        new LoadBitmap(image,getContext()).execute(songs.get(position).getPath());
-                        new LoadPalette(bottomSheetLayout,songs.get(position)).execute(songs.get(position).getPath());
-                    }
-
-                    @Override
-                    public void onPageScrollStateChanged(int state) {
-
-                    }
-                });
             }
         });
 
@@ -144,23 +109,12 @@ public class SongListFragment extends Fragment implements RecyclerTouchListener.
 
     @Override
     public void onClick(View view, int position, Song song) {
-           // Toast.makeText(getContext(), "YES", Toast.LENGTH_SHORT).show();
-            pagerAdapter = new SongPagerAdapter(getParentFragmentManager(),getContext());
-            pagerAdapter.setSongList(songList);
-            viewPager.setAdapter(pagerAdapter);
-       // Toast.makeText(getContext(), "YES"+viewPager.getAdapter().getCount(), Toast.LENGTH_SHORT).show();
-        title.setText(song.getTitle());
-        title.startAnimation(fadeIn);
-        artist.setText(song.getArtist());
-        artist.startAnimation(fadeIn);
-        pagerTitle.setText(song.getTitle());
-        pagerArtist.setText(song.getArtist());
-        duration.setText(song.getDuration());
-        duration.startAnimation(fadeIn);
-        new LoadBitmap(image,getContext()).execute(song.getPath());
-        new LoadPalette(bottomSheetLayout,song).execute(song.getPath());
-        viewPager.setCurrentItem(position);
-        //Toast.makeText(getContext(), "SongListFrag", Toast.LENGTH_SHORT).show();
+        if(songViewModel.getCurrentSong().getValue()!=null && song.getId() != songViewModel.getCurrentSong().getValue().getId())
+        {
+            songViewModel.setCurrentSong(song);
+            songViewModel.setCurrentSongList(songList);
+            viewPager.setCurrentItem(position);
+        }
     }
 
     @Override

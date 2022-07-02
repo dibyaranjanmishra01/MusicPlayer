@@ -27,11 +27,13 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
 
     public SongListAdapter(Context context) {
         this.context = context;
+        songList = new ArrayList<Song>();
     }
 
     public void setSongList(ArrayList<Song> songList)
     {
         this.songList = songList;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -87,7 +89,7 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
 
         public void loadBitmap(Song song,ImageView view)
         {
-            asynctask = new LoadBitmap(view,context);
+            asynctask = new LoadBitmap(view,song.getId());
             if(asynctask.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
             {
                 asynctask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());

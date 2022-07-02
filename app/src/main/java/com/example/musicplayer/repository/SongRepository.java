@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-import permissions.dispatcher.NeedsPermission;
 
 public class SongRepository {
 
@@ -111,6 +110,43 @@ public class SongRepository {
         return songArrayList;
     }
 
+    public ArrayList<Song> getArtistSong(String v)
+    {
+        String where = android.provider.MediaStore.Audio.Media.ARTIST + "=?";
+        String[] whereVal = {v};
+
+        String orderBy = android.provider.MediaStore.Audio.Media.TITLE;
+
+        Cursor musicCursor =context.getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null,where,whereVal, orderBy);
+
+        ArrayList<Song> songArrayList = new ArrayList<Song>();
+        if (musicCursor != null && musicCursor.moveToFirst() ) {
+            int titleColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
+            int artistColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+            int durationColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
+            int albumIDColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID);
+            int pathColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+            do {
+                Song song = new Song();
+                String title = musicCursor.getString(titleColumn);
+                String artist = musicCursor.getString(artistColumn);
+                String duration = musicCursor.getString(durationColumn);
+                String albumID = musicCursor.getString(albumIDColumn);
+                String path = musicCursor.getString(pathColumn);
+                song.setTitle(title);
+                song.setArtist(artist);
+                song.setDuration(formateMilliSeccond(duration));
+                song.setAlbum_id(albumID);
+                song.setPath(path);
+                // Add the info to our array.
+                songArrayList.add(song);
+            } while (musicCursor.moveToNext());
+            musicCursor.close();
+        }
+        return songArrayList;
+    }
+
     public ArrayList<Song> getSongList(Context context)
     {
         /*
@@ -124,6 +160,7 @@ public class SongRepository {
         if(musicCursor != null && musicCursor.moveToFirst())
         {
             //get Columns
+            int idColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media._ID);
             int titleColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
             int artistColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
             int durationColumn = musicCursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
@@ -133,6 +170,7 @@ public class SongRepository {
             do
             {
                 Song song = new Song();
+                long id = musicCursor.getLong(idColumn);
                 String title = musicCursor.getString(titleColumn);
                 String artist = musicCursor.getString(artistColumn);
                 String duration = musicCursor.getString(durationColumn);
@@ -143,6 +181,7 @@ public class SongRepository {
                 song.setDuration(formateMilliSeccond(duration));
                 song.setAlbum_id(albumID);
                 song.setPath(path);
+                song.setId(id);
                 // Add the info to our array.
                 songArrayList.add(song);
             }

@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.musicplayer.R;
 import com.example.musicplayer.adapter.AlbumListAdapter;
@@ -31,7 +32,6 @@ import java.util.ArrayList;
 public class AlbumListFragment extends Fragment implements RecyclerTouchListener.AlbumClickListener {
 
     SongViewModel songViewModel;
-    ViewPager viewPager;
 
     public AlbumListFragment() {
 
@@ -46,13 +46,12 @@ public class AlbumListFragment extends Fragment implements RecyclerTouchListener
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        songViewModel = new ViewModelProvider(getActivity()).get(SongViewModel.class);
-        viewPager = getActivity().findViewById(R.id.song_pager);
+        songViewModel = new ViewModelProvider(requireActivity()).get(SongViewModel.class);
         RecyclerView recyclerView = view.findViewById(R.id.recycler_album);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(),2));
         RecyclerTouchListener recyclerTouchListener = new RecyclerTouchListener(getContext(),recyclerView,this);
         AlbumListAdapter albumListAdapter = new AlbumListAdapter(getContext());
-        songViewModel.getAlbumList().observe(getActivity(), new Observer<ArrayList<Album>>() {
+        songViewModel.getAlbumList().observe(getViewLifecycleOwner(), new Observer<ArrayList<Album>>() {
             @Override
             public void onChanged(ArrayList<Album> albumList) {
                 albumListAdapter.setAlbum(albumList);
@@ -65,9 +64,6 @@ public class AlbumListFragment extends Fragment implements RecyclerTouchListener
 
     @Override
     public void onClick(View view, int position, Album album) {
-//        SongPagerAdapter pagerAdapter = new SongPagerAdapter(getParentFragmentManager(),getContext());
-//        pagerAdapter.setSongList(songViewModel.getAlbumSong(album.getTitle()));
-//        viewPager.setAdapter(pagerAdapter);
         AlbumSongListFragment fragment = new AlbumSongListFragment(album.getTitle());
         getParentFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container_view,fragment)

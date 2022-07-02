@@ -45,7 +45,7 @@
         app:layout_constraintStart_toStartOf="@+id/song_pager"
         app:layout_constraintTop_toTopOf="@id/song_pager" />
 
-    <androidx.viewpager.widget.ViewPager
+    <androidx.viewpager2.widget.ViewPager2
         android:id="@id/song_pager"
         android:layout_width="match_parent"
         android:layout_height="504dp"

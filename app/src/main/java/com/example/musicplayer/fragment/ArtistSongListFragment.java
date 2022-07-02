@@ -4,43 +4,32 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.musicplayer.R;
 import com.example.musicplayer.adapter.SongListAdapter;
-import com.example.musicplayer.adapter.SongPagerAdapter;
 import com.example.musicplayer.model.Song;
-import com.example.musicplayer.utils.LoadBitmap;
-import com.example.musicplayer.utils.LoadPalette;
 import com.example.musicplayer.utils.RecyclerTouchListener;
 import com.example.musicplayer.viewModel.SongViewModel;
 
 import java.util.ArrayList;
 
-public class AlbumSongListFragment extends Fragment implements RecyclerTouchListener.SongClickListener{
-
+public class ArtistSongListFragment extends Fragment implements RecyclerTouchListener.SongClickListener{
     SongViewModel songViewModel;
     String val;
     RecyclerView recyclerView;
     SongListAdapter adapter;
     ViewPager2 viewPager;
-    ArrayList<Song> albumSongList;
+    ArrayList<Song> artistSongList;
 
-    public AlbumSongListFragment(String v) {
+    public ArtistSongListFragment(String v) {
         this.val = v;
     }
 
@@ -54,16 +43,16 @@ public class AlbumSongListFragment extends Fragment implements RecyclerTouchList
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         songViewModel = new ViewModelProvider(requireActivity()).get(SongViewModel.class);
-        albumSongList = songViewModel.getAlbumSong(val);
+        artistSongList = songViewModel.getArtistSong(val);
         recyclerView = view.findViewById(R.id.recycler);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
 
         adapter = new SongListAdapter(getContext());
-        adapter.setSongList(albumSongList);
+        adapter.setSongList(artistSongList);
         recyclerView.setAdapter(adapter);
         RecyclerTouchListener recyclerTouchListener = new RecyclerTouchListener(getContext(),recyclerView,this);
-        recyclerTouchListener.setSongList(albumSongList);
+        recyclerTouchListener.setSongList(artistSongList);
         recyclerView.addOnItemTouchListener(recyclerTouchListener);
         viewPager = getActivity().findViewById(R.id.song_pager);
 
@@ -71,7 +60,7 @@ public class AlbumSongListFragment extends Fragment implements RecyclerTouchList
 
     @Override
     public void onClick(View view, int position, Song song) {
-        songViewModel.setCurrentSongList(albumSongList);
+        songViewModel.setCurrentSongList(artistSongList);
         songViewModel.setCurrentSong(song);
         viewPager.setCurrentItem(position);
     }

@@ -18,11 +18,12 @@ import com.example.musicplayer.adapter.AlbumListAdapter;
 import com.example.musicplayer.adapter.ArtistListAdapter;
 import com.example.musicplayer.model.Album;
 import com.example.musicplayer.model.Artist;
+import com.example.musicplayer.utils.RecyclerTouchListener;
 import com.example.musicplayer.viewModel.SongViewModel;
 
 import java.util.ArrayList;
 
-public class ArtistListFragment extends Fragment {
+public class ArtistListFragment extends Fragment implements RecyclerTouchListener.ArtistClickListener {
 
     SongViewModel songViewModel;
 
@@ -38,16 +39,34 @@ public class ArtistListFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        songViewModel = new ViewModelProvider(getActivity()).get(SongViewModel.class);
+        songViewModel = new ViewModelProvider(requireActivity()).get(SongViewModel.class);
         RecyclerView recyclerView = view.findViewById(R.id.recycler_album);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(),2));
+        RecyclerTouchListener recyclerTouchListener = new RecyclerTouchListener(getContext(),recyclerView,this);
         ArtistListAdapter artistListAdapter = new ArtistListAdapter(getContext());
-        songViewModel.getArtistList().observe(getActivity(), new Observer<ArrayList<Artist>>() {
+        songViewModel.getArtistList().observe(getViewLifecycleOwner(), new Observer<ArrayList<Artist>>() {
             @Override
             public void onChanged(ArrayList<Artist> artistList) {
                 artistListAdapter.setArtist(artistList);
                 recyclerView.setAdapter(artistListAdapter);
+                recyclerTouchListener.setArtistList(artistList);
+                recyclerView.addOnItemTouchListener(recyclerTouchListener);
             }
         });
+    }
+
+    @Override
+    public void onClick(View view, int position, Artist artist) {
+        ArtistSongListFragment fragment = new ArtistSongListFragment(artist.getArtist());
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container_view,fragment)
+                .setReorderingAllowed(true)
+                .addToBackStack("name") // name can be null
+                .commit();
+    }
+
+    @Override
+    public void onLongClick(View view, int position) {
+
     }
 }

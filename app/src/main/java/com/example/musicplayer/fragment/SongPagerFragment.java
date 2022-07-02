@@ -1,6 +1,7 @@
 package com.example.musicplayer.fragment;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,8 +23,6 @@ public class SongPagerFragment extends Fragment{
 
     Song song;
     Context context;
-    private TextView title;
-    private TextView artist;
 
     public SongPagerFragment(Song song, Context context) {
         this.song = song;
@@ -40,10 +39,10 @@ public class SongPagerFragment extends Fragment{
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         ImageView image = view.findViewById(R.id.pager_albumart);
-//        title = view.findViewById(R.id.pager_title);
-//        artist = view.findViewById(R.id.pager_artist);
-//        title.setText(song.getTitle());
-//        artist.setText(song.getArtist());
-        new LoadBitmap(image,context).execute(song.getPath());
+        LoadBitmap asynctask = new LoadBitmap(image,song.getId());
+        if(asynctask.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
+        {
+            asynctask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());
+        }
     }
 }

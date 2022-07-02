@@ -6,16 +6,29 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.OvershootInterpolator;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.musicplayer.R;
 import com.example.musicplayer.adapter.MainPagerAdapter;
+import com.example.musicplayer.adapter.SongPagerAdapter;
 import com.example.musicplayer.model.Song;
+import com.example.musicplayer.utils.LoadBitmap;
+import com.example.musicplayer.utils.LoadPalette;
+import com.example.musicplayer.viewModel.SongViewModel;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
@@ -23,13 +36,14 @@ import java.util.ArrayList;
 
 public class MainFragment extends Fragment {
 
-    //ArrayList<Song> songs;
+    SongViewModel songViewModel;
     ViewPager2 mainViewPager;
     TabLayout tabLayout;
-
-    //public MainFragment(ArrayList<Song> songs) {
-    //    this.songs = songs;
-    //}
+    Animation fadeIn;
+    TextView test,duration,pagerArtist,artist,pagerTitle,title;
+    View v;
+    ImageView image;
+    ConstraintLayout bottomSheetLayout;
 
     @Nullable
     @Override
@@ -40,9 +54,22 @@ public class MainFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        songViewModel = new ViewModelProvider(requireActivity()).get(SongViewModel.class);
         mainViewPager = view.findViewById(R.id.main_pager);
         mainViewPager.setOffscreenPageLimit(3);
         tabLayout = view.findViewById(R.id.tabs);
+        test = getActivity().findViewById(R.id.textView);
+        fadeIn = AnimationUtils.loadAnimation(getContext(),R.anim.fade_in);
+        v = getActivity().findViewById(R.id.view);
+        image = getActivity().findViewById(R.id.sheet_album_art);
+        bottomSheetLayout = getActivity().findViewById(R.id.bottom_sheet);
+        title = getActivity().findViewById(R.id.sheet_title);
+        pagerTitle = getActivity().findViewById(R.id.pager_title);
+        artist = getActivity().findViewById(R.id.sheet_artist);
+        pagerArtist = getActivity().findViewById(R.id.pager_artist);
+        duration = getActivity().findViewById(R.id.sheet_duration);
+
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
@@ -86,8 +113,16 @@ public class MainFragment extends Fragment {
         animator.setDuration(500);
         animator.setInterpolator(new OvershootInterpolator());
         animator.start();
+
+
+
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
 
 
+
+    }
 }

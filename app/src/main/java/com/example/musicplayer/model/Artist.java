@@ -4,9 +4,18 @@ public class Artist {
 
     long id;
     String artist;
+    String art;
 
     public long getId() {
         return id;
+    }
+
+    public String getArt() {
+        return art;
+    }
+
+    public void setArt(String art) {
+        this.art = art;
     }
 
     public void setId(long id) {

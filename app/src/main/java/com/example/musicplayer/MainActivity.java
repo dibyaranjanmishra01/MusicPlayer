@@ -21,6 +21,7 @@ import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -54,16 +55,13 @@ import com.google.android.material.tabs.TabLayoutMediator;
 
 import java.util.ArrayList;
 
-import permissions.dispatcher.NeedsPermission;
-import permissions.dispatcher.RuntimePermissions;
 
 public class MainActivity extends AppCompatActivity{
 
 
 
     SongViewModel songViewModel;
-    SongPagerAdapter pagerAdapter;
-    ViewPager viewPager;
+    ViewPager2 viewPager;
     FragmentActivity fragmentActivity;
     Animation fadeIn;
     TextView test,duration,pagerArtist,artist,pagerTitle,title;
@@ -80,13 +78,9 @@ public class MainActivity extends AppCompatActivity{
         songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
         songViewModel.setBottomSheetCollapsed(true);
         bottomSheetLayout = findViewById(R.id.bottom_sheet);
-        //bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
         v = findViewById(R.id.view);
-
         viewPager = findViewById(R.id.song_pager);
-        viewPager.setPageTransformer(false,new ZoomOutSlideTransformer());
         viewPager.setOffscreenPageLimit(3);
-
 
         title = findViewById(R.id.sheet_title);
         pagerTitle = findViewById(R.id.pager_title);
@@ -94,19 +88,17 @@ public class MainActivity extends AppCompatActivity{
         artist = findViewById(R.id.sheet_artist);
         pagerArtist = findViewById(R.id.pager_artist);
         duration = findViewById(R.id.sheet_duration);
-//        CardView card = findViewById(R.id.sheet_album_art_card);
         test = findViewById(R.id.textView);
         fadeIn = AnimationUtils.loadAnimation(this,R.anim.fade_in);
         fragmentActivity = this;
+
         MainFragment mainFragment = new MainFragment();
                 getSupportFragmentManager().beginTransaction()
                         .add(R.id.fragment_container_view, mainFragment)
                         .setReorderingAllowed(true)
                         .commit();
-        //pagerAdapter = new SongPagerAdapter(getSupportFragmentManager(),this);
-        //populateSong();
-        bottomSheetLayout = findViewById(R.id.bottom_sheet);
-        BottomSheetBehavior bottomSheetBehavior = BottomSheetBehavior.from(findViewById(R.id.bottom_sheet));
+
+        BottomSheetBehavior bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
         CardView card = findViewById(R.id.sheet_album_art_card);
         bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
@@ -115,13 +107,11 @@ public class MainActivity extends AppCompatActivity{
                 {
                     case STATE_EXPANDED:card.setAlpha(0f);
                         viewPager.setAlpha(1f);
-                        //isBottomSheetCollapsed = false;
                         songViewModel.setBottomSheetCollapsed(false);
                         break;
                     default:card.setAlpha(1f);
                         v.setVisibility(View.INVISIBLE);
                         songViewModel.setBottomSheetCollapsed(true);
-                        //isBottomSheetCollapsed = true;
                         viewPager.setAlpha(0f);
                 }
             }
@@ -141,9 +131,78 @@ public class MainActivity extends AppCompatActivity{
                 int initial_radius = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics());
                 int final_radius = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
                 card.setRadius(initial_radius-(initial_radius-10)*slideOffset);
-                //card.setRadius(10*slideOffset);
             }
         });
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
+                test.setText(" "+positionOffset);
+                if(!songViewModel.isBottomSheetCollapsed())
+                {
+                    v.setVisibility(View.VISIBLE);
+                    v.setScaleX(20*positionOffset*positionOffset);
+                    v.setScaleY(20*positionOffset*positionOffset);
+                }
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                ArrayList<Song> songs = songViewModel.getCurrentSongList().getValue();//current songList loaded to ViewPager
+                if(songs!=null)
+                {
+                    songViewModel.setCurrentSong(songs.get(position));
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                super.onPageScrollStateChanged(state);
+            }
+        });
+        SongPagerAdapter adapter = new SongPagerAdapter(this,this);
+        songViewModel.getCurrentSongList().observe(this, new Observer<ArrayList<Song>>() {
+            @Override
+            public void onChanged(ArrayList<Song> songs) {
+                adapter.setSongList(songs);
+                viewPager.setAdapter(adapter);
+            }
+        });
+        songViewModel.getCurrentSong().observe(this, new Observer<Song>() {
+            @Override
+            public void onChanged(Song song) {
+                title.setText(song.getTitle());
+                title.startAnimation(fadeIn);
+                artist.setText(song.getArtist());
+                artist.startAnimation(fadeIn);
+                pagerTitle.setText(song.getTitle());
+                pagerArtist.setText(song.getArtist());
+                duration.setText(song.getDuration());
+                duration.startAnimation(fadeIn);
+                LoadBitmap asynctask = new LoadBitmap(image,song.getId());
+                if(asynctask.getStatus() == AsyncTask.Status.RUNNING) {
+                    Toast.makeText(getApplicationContext(), "cancel", Toast.LENGTH_SHORT).show();
+                    asynctask.cancel(true);
+                }
+                if(asynctask.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
+                {
+                    asynctask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());
+                }
+                LoadPalette async = new LoadPalette(bottomSheetLayout,song);
+                if(async.getStatus() == AsyncTask.Status.RUNNING) {
+                    async.cancel(true);
+                }
+                if(async.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
+                {
+                    async.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());
+                }
+//                new LoadBitmap(image,getApplicationContext()).execute(song.getPath());
+//                new LoadPalette(bottomSheetLayout,song).execute(song.getPath());
+            }
+        });
+//
+
     }
 
     public void setFullscreen()
@@ -173,51 +232,5 @@ public class MainActivity extends AppCompatActivity{
         }
         win.setAttributes(winParams);
     }
-
-
-//    public void populateSong() {
-//        songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
-//        songViewModel.getSongList().observe(this, new Observer<ArrayList<Song>>() {
-//            @Override
-//            public void onChanged(ArrayList<Song> songs) {
-//                pagerAdapter.setSongList(songs);
-//                viewPager.setAdapter(pagerAdapter);
-//                MainFragment mainFragment = new MainFragment(songs);
-//                getSupportFragmentManager().beginTransaction()
-//                        .add(R.id.fragment_container_view, mainFragment)
-//                        .setReorderingAllowed(true)
-//                        .commit();
-//                viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-//                    @Override
-//                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-//                        test.setText(" "+positionOffset);
-//                        if(!isBottomSheetCollapsed())
-//                        {
-//                            v.setVisibility(View.VISIBLE);
-//                            v.setScaleX(20*positionOffset*positionOffset);
-//                            v.setScaleY(20*positionOffset*positionOffset);
-//                        }
-//                    }
-//
-//                    @Override
-//                    public void onPageSelected(int position) {
-//                        title.setText(songs.get(position).getTitle());
-//                        artist.setText(songs.get(position).getArtist());
-//                        pagerTitle.setText(songs.get(position).getTitle());
-//                        pagerArtist.setText(songs.get(position).getArtist());
-//                        duration.setText(songs.get(position).getDuration());
-//                        new LoadBitmap(image,getApplicationContext()).execute(songs.get(position).getPath());
-//                        new LoadPalette(bottomSheetLayout,songs.get(position)).execute(songs.get(position).getPath());
-//                    }
-//
-//                    @Override
-//                    public void onPageScrollStateChanged(int state) {
-//
-//                    }
-//                });
-//            }
-//        });
-//
-//    }
 
 }

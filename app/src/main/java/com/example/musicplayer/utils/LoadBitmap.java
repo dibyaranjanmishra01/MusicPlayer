@@ -13,17 +13,19 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.musicplayer.R;
 
+import java.lang.ref.WeakReference;
+
 public class LoadBitmap extends AsyncTask<String,Void,Bitmap>
 {
 
-    private final ImageView albumart;
-    private final Context context;
+    WeakReference<ImageView> albumart;
+    long id;
     BitmapFactory.Options options;
 
-    public LoadBitmap(ImageView albumArt,Context context) {
-        this.albumart = albumArt;
-        this.context = context;
+    public LoadBitmap(ImageView albumArt,long id) {
+        this.albumart = new WeakReference<ImageView>(albumArt);
         options = new BitmapFactory.Options();
+        this.id = id;
         options.inSampleSize = 8;
 
     }
@@ -31,7 +33,7 @@ public class LoadBitmap extends AsyncTask<String,Void,Bitmap>
     @Override
     protected Bitmap doInBackground(String... strings) {
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-        byte[] result = null;
+        byte[] result;
         Bitmap bitmap = null;
         try{
             mmr.setDataSource(strings[0]);
@@ -45,21 +47,26 @@ public class LoadBitmap extends AsyncTask<String,Void,Bitmap>
     @Override
     protected void onPostExecute(Bitmap bitmap) {
         super.onPostExecute(bitmap);
-        if(bitmap!=null)
-        {
-            //Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length,options);
-            albumart.setImageBitmap(bitmap);
-            //Glide.with(context).load(bitmap).diskCacheStrategy(DiskCacheStrategy.ALL).placeholder(R.color.purple_200).into(albumart);
+
+        if (isCancelled()) {
+            bitmap = null;
         }
-        else {
-            albumart.setImageDrawable(null);
-            albumart.setBackgroundColor(Color.WHITE);
+
+        if (albumart != null ) {
+            final ImageView imageView = albumart.get();
+            if (imageView != null && bitmap!= null) {
+                imageView.setImageBitmap(bitmap);
+            }
+            else if(imageView != null)
+            {
+                imageView.setImageDrawable(null);
+                imageView.setBackgroundColor(Color.WHITE);
+            }
         }
     }
 
     @Override
     protected void onCancelled() {
         super.onCancelled();
-
     }
 }

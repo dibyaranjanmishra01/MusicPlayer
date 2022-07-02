@@ -7,6 +7,7 @@ View Model for item tiles of Song Recycler View
 import android.graphics.Color;
 
 public class Song {
+    private long id;
     private String title;
     private String duration;
     private String artist;
@@ -19,6 +20,14 @@ public class Song {
         this.duration = "";
         this.artist = "";
         dominantColor = Color.BLACK;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public int getDominantColor() {

@@ -6,7 +6,9 @@ View Model for item tiles of Song Recycler View
 
 import android.graphics.Color;
 
-public class Song {
+import java.io.Serializable;
+
+public class Song implements Serializable {
     private long id;
     private String title;
     private String duration;

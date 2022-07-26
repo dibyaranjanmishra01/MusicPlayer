@@ -78,7 +78,6 @@ public class SongListFragment extends Fragment implements RecyclerTouchListener.
         artist = getActivity().findViewById(R.id.sheet_artist);
         pagerArtist = getActivity().findViewById(R.id.pager_artist);
         duration = getActivity().findViewById(R.id.sheet_duration);
-        test = getActivity().findViewById(R.id.textView);
         fadeIn = AnimationUtils.loadAnimation(getContext(),R.anim.fade_in);
         v = getActivity().findViewById(R.id.view);
         bottomSheetLayout = getActivity().findViewById(R.id.bottom_sheet);

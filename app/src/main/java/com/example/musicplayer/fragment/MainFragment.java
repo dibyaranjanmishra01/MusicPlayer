@@ -59,7 +59,6 @@ public class MainFragment extends Fragment {
         mainViewPager = view.findViewById(R.id.main_pager);
         mainViewPager.setOffscreenPageLimit(3);
         tabLayout = view.findViewById(R.id.tabs);
-        test = getActivity().findViewById(R.id.textView);
         fadeIn = AnimationUtils.loadAnimation(getContext(),R.anim.fade_in);
         v = getActivity().findViewById(R.id.view);
         image = getActivity().findViewById(R.id.sheet_album_art);
@@ -109,13 +108,10 @@ public class MainFragment extends Fragment {
             }
         }
         ).attach();
-        ObjectAnimator animator = ObjectAnimator.ofFloat(tabLayout.getTabAt(0).view,"translationY",-10f);
-        animator.setDuration(500);
-        animator.setInterpolator(new OvershootInterpolator());
-        animator.start();
-
-
-
+//        ObjectAnimator animator = ObjectAnimator.ofFloat(tabLayout.getTabAt(0).view,"translationY",-10f);
+//        animator.setDuration(500);
+//        animator.setInterpolator(new OvershootInterpolator());
+//        animator.start();
     }
 
     @Override

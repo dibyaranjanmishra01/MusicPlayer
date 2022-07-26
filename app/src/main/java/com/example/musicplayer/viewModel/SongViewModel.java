@@ -21,6 +21,9 @@ public class SongViewModel extends AndroidViewModel {
     MutableLiveData<SongPagerAdapter> songPagerAdapter;
     MutableLiveData<Song> currentSong;
     MutableLiveData<ArrayList<Song>> currentSongList;
+    MutableLiveData<Boolean> isPlaying;
+    int resumePosition;
+    boolean onGoingCall;
 
     public SongViewModel(@NonNull Application application) {
         super(application);
@@ -31,6 +34,31 @@ public class SongViewModel extends AndroidViewModel {
         songPagerAdapter = new MutableLiveData<>();
         currentSong = new MutableLiveData<>();
         currentSongList = new MutableLiveData<>();
+        isPlaying = new MutableLiveData<>();
+    }
+
+    public boolean isOnGoingCall() {
+        return onGoingCall;
+    }
+
+    public void setOnGoingCall(boolean onGoingCall) {
+        this.onGoingCall = onGoingCall;
+    }
+
+    public int getResumePosition() {
+        return resumePosition;
+    }
+
+    public void setResumePosition(int resumePosition) {
+        this.resumePosition = resumePosition;
+    }
+
+    public MutableLiveData<Boolean> getIsPlaying() {
+        return isPlaying;
+    }
+
+    public void setIsPlaying(boolean isPlaying) {
+        this.isPlaying.setValue(isPlaying);
     }
 
     public boolean isBottomSheetCollapsed() {
@@ -44,6 +72,7 @@ public class SongViewModel extends AndroidViewModel {
     public ArrayList<Song> getAlbumSong(String v){
         return repository.getAlbumSong(v);
     }
+
     public ArrayList<Song> getArtistSong(String v){
         return repository.getArtistSong(v);
     }

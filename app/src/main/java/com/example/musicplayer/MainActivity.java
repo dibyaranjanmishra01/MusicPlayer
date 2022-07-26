@@ -11,6 +11,8 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
@@ -50,16 +52,23 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+
+import pub.devrel.easypermissions.AfterPermissionGranted;
+import pub.devrel.easypermissions.AppSettingsDialog;
+import pub.devrel.easypermissions.EasyPermissions;
 
 
 public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCompletionListener,
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener, MediaPlayer.OnSeekCompleteListener,
         MediaPlayer.OnInfoListener, MediaPlayer.OnBufferingUpdateListener,
-
-        AudioManager.OnAudioFocusChangeListener {
-
+        AudioManager.OnAudioFocusChangeListener, EasyPermissions.PermissionCallbacks {
 
 
+    private static final int READ_STORAGE_PERMISSION_REQUEST = 123;
+    private static final int READ_PHONE_STATE_PERMISSION_REQUEST = 321;
+    String permissionStorage = Manifest.permission.READ_EXTERNAL_STORAGE;
+    String permissionPhoneState = Manifest.permission.READ_PHONE_STATE;
     SongViewModel songViewModel;
     ViewPager2 viewPager;
     FragmentActivity fragmentActivity;
@@ -89,10 +98,9 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setFullscreen();
+        callStateListener();
+
         seekbarUpdateHandler = new Handler();
-        songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
-        songViewModel.setBottomSheetCollapsed(true);
-        songViewModel.setIsPlaying(false);
         bottomSheetLayout = findViewById(R.id.bottom_sheet);
         v = findViewById(R.id.view);
         playPauseButton = findViewById(R.id.animatedButton);
@@ -111,188 +119,199 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
         duration = findViewById(R.id.sheet_duration);
         fadeIn = AnimationUtils.loadAnimation(this,R.anim.fade_in);
         fragmentActivity = this;
+        beginProcess();
 
-        callStateListener();
 
-        MainFragment mainFragment = new MainFragment();
-                getSupportFragmentManager().beginTransaction()
-                        .add(R.id.fragment_container_view, mainFragment)
-                        .setReorderingAllowed(true)
-                        .commit();
+    }
 
-        mUpdateSeekbar = new Runnable() {
-            @Override
-            public void run() {
-                if(mediaPlayer!=null) {
-                    seekBar.setProgress(mediaPlayer.getCurrentPosition());
-                    currPos.setText(SongRepository.formateMilliSeccond(Integer.toString(mediaPlayer.getCurrentPosition())));
-                    seekbarUpdateHandler.postDelayed(this, 50);
-                }
-            }
-        };
+    @AfterPermissionGranted(123)
+    private void beginProcess() {
 
-        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
-        CardView card = findViewById(R.id.sheet_album_art_card);
-        bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                switch(newState)
-                {
-                    case STATE_EXPANDED:card.setAlpha(0f);
-                        viewPager.setAlpha(1f);
-                        songViewModel.setBottomSheetCollapsed(false);
-                        break;
-                    default:card.setAlpha(1f);
-                        v.setVisibility(View.INVISIBLE);
-                        songViewModel.setBottomSheetCollapsed(true);
-                        viewPager.setAlpha(0f);
-                }
-            }
+        if(EasyPermissions.hasPermissions(this, permissionStorage)) {
+            songViewModel = new ViewModelProvider(this).get(SongViewModel.class);
+            songViewModel.setBottomSheetCollapsed(true);
+            songViewModel.setIsPlaying(false);
+            MainFragment mainFragment = new MainFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.fragment_container_view, mainFragment)
+                    .setReorderingAllowed(true)
+                    .commit();
 
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                title.setAlpha((1-slideOffset)*(1-slideOffset));
-                artist.setAlpha((1-slideOffset)*(1-slideOffset));
-                duration.setAlpha((1-slideOffset)*(1-slideOffset));
-                int image_width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 72, getResources().getDisplayMetrics());
-                float screen_width = Resources.getSystem().getDisplayMetrics().widthPixels-image_width;
-                float screen_height = Resources.getSystem().getDisplayMetrics().heightPixels-5*image_width+16;
-                card.setTranslationX(screen_width*0.5f*(slideOffset)*(slideOffset));
-                card.setTranslationY(screen_height*0.525f*slideOffset);
-                card.setScaleX(3.1f*(slideOffset)*(slideOffset)+1);
-                card.setScaleY(3.1f*(slideOffset)*(slideOffset)+1);
-                int initial_radius = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics());
-                int final_radius = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
-                card.setRadius(initial_radius-(initial_radius-10)*slideOffset);
-            }
-        });
-        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
-                if(!songViewModel.isBottomSheetCollapsed())
-                {
-                    v.setVisibility(View.VISIBLE);
-                    v.setScaleX(20*positionOffset*positionOffset);
-                    v.setScaleY(20*positionOffset*positionOffset);
+            mUpdateSeekbar = new Runnable() {
+                @Override
+                public void run() {
+                    if(mediaPlayer!=null) {
+                        seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                        currPos.setText(SongRepository.formateMilliSeccond(Integer.toString(mediaPlayer.getCurrentPosition())));
+                        seekbarUpdateHandler.postDelayed(this, 50);
+                    }
                 }
-            }
+            };
 
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                ArrayList<Song> songs = songViewModel.getCurrentSongList().getValue();//current songList loaded to ViewPager
-                if(songs!=null)
-                {
-                    songViewModel.setCurrentSong(songs.get(position));
+            bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
+            CardView card = findViewById(R.id.sheet_album_art_card);
+            bottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+                @Override
+                public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                    switch(newState)
+                    {
+                        case STATE_EXPANDED:card.setAlpha(0f);
+                            viewPager.setAlpha(1f);
+                            songViewModel.setBottomSheetCollapsed(false);
+                            break;
+                        default:card.setAlpha(1f);
+                            v.setVisibility(View.INVISIBLE);
+                            songViewModel.setBottomSheetCollapsed(true);
+                            viewPager.setAlpha(0f);
+                    }
                 }
-            }
 
-            @Override
-            public void onPageScrollStateChanged(int state) {
-                super.onPageScrollStateChanged(state);
-            }
-        });
-        SongPagerAdapter adapter = new SongPagerAdapter(this,this);
-        songViewModel.getCurrentSongList().observe(this, new Observer<ArrayList<Song>>() {
-            @Override
-            public void onChanged(ArrayList<Song> songs) {
-                adapter.setSongList(songs);
-                viewPager.setAdapter(adapter);
-            }
-        });
-        songViewModel.getCurrentSong().observe(this, new Observer<Song>() {
-            @Override
-            public void onChanged(Song song) {
-                title.setText(song.getTitle());
-                title.startAnimation(fadeIn);
-                artist.setText(song.getArtist());
-                artist.startAnimation(fadeIn);
-                pagerTitle.setText(song.getTitle());
-                pagerArtist.setText(song.getArtist());
-                duration.setText(song.getDuration());
-                duration.startAnimation(fadeIn);
-                playAudio(song);
-                LoadBitmap asynctask = new LoadBitmap(image,song.getId());
-                if(asynctask.getStatus() == AsyncTask.Status.RUNNING) {
-                    Toast.makeText(getApplicationContext(), "cancel", Toast.LENGTH_SHORT).show();
-                    asynctask.cancel(true);
+                @Override
+                public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                    title.setAlpha((1-slideOffset)*(1-slideOffset));
+                    artist.setAlpha((1-slideOffset)*(1-slideOffset));
+                    duration.setAlpha((1-slideOffset)*(1-slideOffset));
+                    int image_width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 72, getResources().getDisplayMetrics());
+                    float screen_width = Resources.getSystem().getDisplayMetrics().widthPixels-image_width;
+                    float screen_height = Resources.getSystem().getDisplayMetrics().heightPixels-5*image_width+16;
+                    card.setTranslationX(screen_width*0.5f*(slideOffset)*(slideOffset));
+                    card.setTranslationY(screen_height*0.525f*slideOffset);
+                    card.setScaleX(3.1f*(slideOffset)*(slideOffset)+1);
+                    card.setScaleY(3.1f*(slideOffset)*(slideOffset)+1);
+                    int initial_radius = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics());
+                    int final_radius = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
+                    card.setRadius(initial_radius-(initial_radius-10)*slideOffset);
                 }
-                if(asynctask.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
-                {
-                    asynctask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());
+            });
+            viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+                @Override
+                public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                    super.onPageScrolled(position, positionOffset, positionOffsetPixels);
+                    if(!songViewModel.isBottomSheetCollapsed())
+                    {
+                        v.setVisibility(View.VISIBLE);
+                        v.setScaleX(20*positionOffset*positionOffset);
+                        v.setScaleY(20*positionOffset*positionOffset);
+                    }
                 }
-                LoadPalette async = new LoadPalette(bottomSheetLayout,song);
-                if(async.getStatus() == AsyncTask.Status.RUNNING) {
-                    async.cancel(true);
+
+                @Override
+                public void onPageSelected(int position) {
+                    super.onPageSelected(position);
+                    ArrayList<Song> songs = songViewModel.getCurrentSongList().getValue();//current songList loaded to ViewPager
+                    if(songs!=null)
+                    {
+                        songViewModel.setCurrentSong(songs.get(position));
+                    }
                 }
-                if(async.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
-                {
-                    async.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());
+
+                @Override
+                public void onPageScrollStateChanged(int state) {
+                    super.onPageScrollStateChanged(state);
                 }
+            });
+            SongPagerAdapter adapter = new SongPagerAdapter(this,this);
+            songViewModel.getCurrentSongList().observe(this, new Observer<ArrayList<Song>>() {
+                @Override
+                public void onChanged(ArrayList<Song> songs) {
+                    adapter.setSongList(songs);
+                    viewPager.setAdapter(adapter);
+                }
+            });
+            songViewModel.getCurrentSong().observe(this, new Observer<Song>() {
+                @Override
+                public void onChanged(Song song) {
+                    title.setText(song.getTitle());
+                    title.startAnimation(fadeIn);
+                    artist.setText(song.getArtist());
+                    artist.startAnimation(fadeIn);
+                    pagerTitle.setText(song.getTitle());
+                    pagerArtist.setText(song.getArtist());
+                    duration.setText(song.getDuration());
+                    duration.startAnimation(fadeIn);
+                    playAudio(song);
+                    LoadBitmap asynctask = new LoadBitmap(image,song.getId());
+                    if(asynctask.getStatus() == AsyncTask.Status.RUNNING) {
+                        Toast.makeText(getApplicationContext(), "cancel", Toast.LENGTH_SHORT).show();
+                        asynctask.cancel(true);
+                    }
+                    if(asynctask.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
+                    {
+                        asynctask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());
+                    }
+                    LoadPalette async = new LoadPalette(bottomSheetLayout,song);
+                    if(async.getStatus() == AsyncTask.Status.RUNNING) {
+                        async.cancel(true);
+                    }
+                    if(async.getStatus() != AsyncTask.Status.RUNNING && asynctask.getStatus() != AsyncTask.Status.FINISHED)
+                    {
+                        async.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,song.getPath());
+                    }
 //                new LoadBitmap(image,getApplicationContext()).execute(song.getPath());
 //                new LoadPalette(bottomSheetLayout,song).execute(song.getPath());
-            }
-        });
-
-        songViewModel.getIsPlaying().observe(this, new Observer<Boolean>() {
-            @Override
-            public void onChanged(Boolean playing) {
-                //String text = (playing)?"PAUSE":"PLAY";
-                //button.setText(text);
-                if(playing){
-                    playPauseButton.setProgress(0);
-                    playPauseButton.pauseAnimation();
-                    playPauseButton.setSpeed(1f);
-                    playPauseButton.playAnimation();
-
-
                 }
-                else{
-                    playPauseButton.setProgress(1f);
-                    playPauseButton.pauseAnimation();
-                    playPauseButton.setSpeed(-1f);
-                    playPauseButton.playAnimation();
+            });
+
+            songViewModel.getIsPlaying().observe(this, new Observer<Boolean>() {
+                @Override
+                public void onChanged(Boolean playing) {
+                    //String text = (playing)?"PAUSE":"PLAY";
+                    //button.setText(text);
+                    if(playing){
+                        playPauseButton.setProgress(0);
+                        playPauseButton.pauseAnimation();
+                        playPauseButton.setSpeed(1f);
+                        playPauseButton.playAnimation();
+
+
+                    }
+                    else{
+                        playPauseButton.setProgress(1f);
+                        playPauseButton.pauseAnimation();
+                        playPauseButton.setSpeed(-1f);
+                        playPauseButton.playAnimation();
+                    }
                 }
-            }
-        });
+            });
 
-        playPauseButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(songViewModel.getIsPlaying().getValue()!=null)
-                {
-                    boolean isPlaying = songViewModel.getIsPlaying().getValue();
-                    //songViewModel.setIsPlaying(!playState);
-                    if(isPlaying) pauseMedia();
-                    else resumeMedia();
+            playPauseButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if(songViewModel.getIsPlaying().getValue()!=null)
+                    {
+                        boolean isPlaying = songViewModel.getIsPlaying().getValue();
+                        //songViewModel.setIsPlaying(!playState);
+                        if(isPlaying) pauseMedia();
+                        else resumeMedia();
+                    }
                 }
-            }
-        });
+            });
 
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    songViewModel.setResumePosition(progress);
+            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser) {
+                        songViewModel.setResumePosition(progress);
+                    }
                 }
-            }
 
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-                seekbarUpdateHandler.removeCallbacks(mUpdateSeekbar);
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                if(mediaPlayer!=null) {
-                    seekbarUpdateHandler.postDelayed(mUpdateSeekbar, 0);
-                    mediaPlayer.seekTo(songViewModel.getResumePosition());
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                    seekbarUpdateHandler.removeCallbacks(mUpdateSeekbar);
                 }
-            }
-        });
 
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    if(mediaPlayer!=null) {
+                        seekbarUpdateHandler.postDelayed(mUpdateSeekbar, 0);
+                        mediaPlayer.seekTo(songViewModel.getResumePosition());
+                    }
+                }
+            });
 
+        }
+        else EasyPermissions.requestPermissions(this, "Our App Requires a permission to access your storage", READ_STORAGE_PERMISSION_REQUEST
+                , permissionStorage);
 
     }
 
@@ -326,7 +345,8 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
 
     @Override
     public void onBackPressed() {
-        if(!songViewModel.isBottomSheetCollapsed())
+
+        if(EasyPermissions.hasPermissions(this, permissionStorage) && !songViewModel.isBottomSheetCollapsed())
             bottomSheetBehavior.setState(STATE_COLLAPSED);
         else
         super.onBackPressed();
@@ -516,38 +536,58 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
     }
 
     private void callStateListener() {
-        // Get the telephony manager
-        telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        //Starting listening for PhoneState changes
-        phoneStateListener = new PhoneStateListener() {
-            @Override
-            public void onCallStateChanged(int state, String incomingNumber) {
-                switch (state) {
-                    //if at least one call exists or the phone is ringing
-                    //pause the MediaPlayer
-                    case TelephonyManager.CALL_STATE_OFFHOOK:
-                    case TelephonyManager.CALL_STATE_RINGING:
-                        if (mediaPlayer != null) {
-                            pauseMedia();
-                            songViewModel.setOnGoingCall(true);
-                        }
-                        break;
-                    case TelephonyManager.CALL_STATE_IDLE:
-                        // Phone idle. Start playing.
-                        if (mediaPlayer != null) {
-                            if (songViewModel.isOnGoingCall()) {
-                                songViewModel.setOnGoingCall(false);
-                                resumeMedia();
+
+            // Get the telephony manager
+            telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            //Starting listening for PhoneState changes
+            phoneStateListener = new PhoneStateListener() {
+                @Override
+                public void onCallStateChanged(int state, String incomingNumber) {
+                    switch (state) {
+                        //if at least one call exists or the phone is ringing
+                        //pause the MediaPlayer
+                        case TelephonyManager.CALL_STATE_OFFHOOK:
+                        case TelephonyManager.CALL_STATE_RINGING:
+                            if (mediaPlayer != null) {
+                                pauseMedia();
+                                songViewModel.setOnGoingCall(true);
                             }
-                        }
-                        break;
+                            break;
+                        case TelephonyManager.CALL_STATE_IDLE:
+                            // Phone idle. Start playing.
+                            if (mediaPlayer != null) {
+                                if (songViewModel.isOnGoingCall()) {
+                                    songViewModel.setOnGoingCall(false);
+                                    resumeMedia();
+                                }
+                            }
+                            break;
+                    }
                 }
-            }
-        };
-        // Register the listener with the telephony manager
-        // Listen for changes to the device call state.
-        telephonyManager.listen(phoneStateListener,
-                PhoneStateListener.LISTEN_CALL_STATE);
+            };
+            // Register the listener with the telephony manager
+            // Listen for changes to the device call state.
+            telephonyManager.listen(phoneStateListener,
+                    PhoneStateListener.LISTEN_CALL_STATE);
+
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+    }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, @NonNull List<String> perms) {
+
+    }
+
+    @Override
+    public void onPermissionsDenied(int requestCode, @NonNull List<String> perms) {
+        if(EasyPermissions.somePermissionPermanentlyDenied(this, perms)){
+
+            new AppSettingsDialog.Builder(this).build().show();
+        }
+    }
 }

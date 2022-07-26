@@ -424,7 +424,7 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
     private void playMedia() {
         Log.d("MUSICPLAYER","onPlay()");
         if (!mediaPlayer.isPlaying()) {
-
+            songViewModel.setIsPlaying(true);
             seekBar.setMax(mediaPlayer.getDuration());
             maxPos.setText(SongRepository.formateMilliSeccond(Integer.toString(mediaPlayer.getDuration())));
             seekbarUpdateHandler.postDelayed(mUpdateSeekbar, 0);
@@ -436,6 +436,7 @@ public class MainActivity extends AppCompatActivity implements MediaPlayer.OnCom
         Log.d("MUSICPLAYER","onStop()");
         if (mediaPlayer == null) return;
         if (mediaPlayer.isPlaying()) {
+            songViewModel.setIsPlaying(false);
             seekbarUpdateHandler.removeCallbacks(mUpdateSeekbar);
             mediaPlayer.stop();
         }

@@ -47,10 +47,12 @@ public class ArtistListFragment extends Fragment implements RecyclerTouchListene
         songViewModel.getArtistList().observe(getViewLifecycleOwner(), new Observer<ArrayList<Artist>>() {
             @Override
             public void onChanged(ArrayList<Artist> artistList) {
-                artistListAdapter.setArtist(artistList);
-                recyclerView.setAdapter(artistListAdapter);
-                recyclerTouchListener.setArtistList(artistList);
-                recyclerView.addOnItemTouchListener(recyclerTouchListener);
+                if(artistList!=null) {
+                    artistListAdapter.setArtist(artistList);
+                    recyclerView.setAdapter(artistListAdapter);
+                    recyclerTouchListener.setArtistList(artistList);
+                    recyclerView.addOnItemTouchListener(recyclerTouchListener);
+                }
             }
         });
     }

@@ -54,10 +54,12 @@ public class AlbumListFragment extends Fragment implements RecyclerTouchListener
         songViewModel.getAlbumList().observe(getViewLifecycleOwner(), new Observer<ArrayList<Album>>() {
             @Override
             public void onChanged(ArrayList<Album> albumList) {
-                albumListAdapter.setAlbum(albumList);
-                recyclerView.setAdapter(albumListAdapter);
-                recyclerTouchListener.setAlbumList(albumList);
-                recyclerView.addOnItemTouchListener(recyclerTouchListener);
+                if(albumList!=null) {
+                    albumListAdapter.setAlbum(albumList);
+                    recyclerView.setAdapter(albumListAdapter);
+                    recyclerTouchListener.setAlbumList(albumList);
+                    recyclerView.addOnItemTouchListener(recyclerTouchListener);
+                }
             }
         });
     }
